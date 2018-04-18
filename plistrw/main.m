@@ -8,33 +8,19 @@
 #import "PListVistPathRecord.h"
 #import "NSDictionary+KeyCaseInsensitive.h"
 #import "apis.h"
+void test_main(void);
 /////////////////////////////////////////////
 /// Customize NSLog()
 #ifdef DEBUG
 #define NSLog(FORMAT, ...) fprintf(stderr,"%s\n",[[NSString stringWithFormat:FORMAT, ##__VA_ARGS__] UTF8String]);
-void test_main(void);
 #else
 #define NSLog(...)
 #endif
 /////////////////////////////////////////////
 int main(int argc, const char * argv[])
 {
-    //check environ, see if PLISTRW_QUIET is YES
-    extern char** environ;
-    BOOL bNeedQuiet=NO;
-    char** env = environ;
-    while(*env != NULL)
-    {
-        char *str= *env++,*value;
-        const char *strENVName="PLISTRW_QUIET";
-        size_t n=strlen(strENVName);
-        if(strncmp(str, strENVName,n)==0)
-        {
-            value=str+n+1;
-            bNeedQuiet=([[NSString stringWithUTF8String:value] compare:@"YES" options:NSCaseInsensitiveSearch]==NSOrderedSame);
-            break;
-        }
-    }
+    BOOL bNeedQuiet=IsEnvSettingEnabled("PLISTRW_QUIET");
+    BOOL bIsRunTestMode=IsEnvSettingEnabled("PLISTRW_RUN_TEST");
     
     if(argc==2&&strcmp(argv[1],"--plist_template")==0)
     {
@@ -47,13 +33,15 @@ int main(int argc, const char * argv[])
         print_usage();
         return -1;
     }
-    
+
     @autoreleasepool
     {
-#ifdef DEBUG
-        test_main();
-        return 0;
-#else
+        if (bIsRunTestMode)
+        {
+            test_main();
+            return 0;
+        }
+        
         int iRetCode=-1;
         @try
         {
@@ -62,11 +50,10 @@ int main(int argc, const char * argv[])
         @catch(NSException *ex)
         {
             if(bNeedQuiet==NO)
-            fprintf(stderr,"%s\n",ex.reason.UTF8String);
+                fprintf(stderr,"%s",ex.reason.UTF8String);
             iRetCode=getExceptionCodeFromExcp(ex);
         }
         return iRetCode;
-#endif
     }
 }
 /////////////////////////////////////////////
@@ -124,7 +111,6 @@ id getChildObjFromParentArray(id *parentObject_in_out,NSArray* arrIndexs)
                 obj1=parArray[nu.unsignedIntegerValue];
                 if(i<j-1)
                 {
-                    NSLog(@"");
                     if([obj1 isKindOfClass:arrayCLASS])
                     {
                         parArray=obj1;
@@ -276,7 +262,7 @@ int inner_main(int argc, const char * argv[])
     {
         key1=arrKeyPath[i];
         key1=[key1 stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-        NSLog(@"访问节点：%@",key1);
+        //NSLog(@"访问节点：%@",key1);
         
         NSUInteger iLPA=0;
         PListVistPathRecord *record=[PListVistPathRecord new];
@@ -297,7 +283,7 @@ int inner_main(int argc, const char * argv[])
         if(objCurrent==nil)iLPA=NSNotFound;
         record.iLastIndexInParentArray=iLPA;
         
-        NSLog(@"得到的节点类型为：%@",(objCurrent==nil?@"(无)":NSStringFromClass([objCurrent class])));
+        //NSLog(@"得到的节点类型为：%@",(objCurrent==nil?@"(无)":NSStringFromClass([objCurrent class])));
         
         [arrOfVisitedRecord addObject:record];
         if(objCurrent==nil)
@@ -391,7 +377,15 @@ int inner_main(int argc, const char * argv[])
     else
     {
         //将得到的对象值，格式化为字符串
-        key1=[NSString stringWithFormat:@"%@",((PListVistPathRecord*)arrOfVisitedRecord.lastObject).currentValue];
+        id ob2=((PListVistPathRecord*)arrOfVisitedRecord.lastObject).currentValue;
+        if ([ob2 respondsToSelector:@selector(description_pretty_json)])
+        {
+            key1=[ob2 performSelector:@selector(description_pretty_json)];
+        }
+        else
+        {
+            key1=[NSString stringWithFormat:@"%@",ob2];
+        }
         fprintf(stdout,"%s",key1.UTF8String);
     }
     return 0;
@@ -436,6 +430,7 @@ void test_main()
         {argv_param_0,plistfile,"a/b/dic1/inner_array","-"},
         {argv_param_0,plistfile,"a/b/dic1/inner1","-"},
         {argv_param_0,plistfile,"a/b/dic1/inner2","-"},
+        {argv_param_0,plistfile,"a/b/dic1"},
     };
     size_t i,k,n,j=sizeof(argv_all)/sizeof(argvtype);
     for (i=0; i<j; ++i)
@@ -447,13 +442,16 @@ void test_main()
         }
         @try
         {
+            NSString *str1=[NSString stringWithFormat:@"\n===================\nTest target params:\n1:%s\n2:%s\n3:%s\n",argv_all[i][1],argv_all[i][2],(argv_all[i][3]==NULL?"":argv_all[i][3])];
+            fprintf(stderr,"%s",str1.UTF8String);
+            
             iRet=inner_main((int)k, argv_all[i]);
         }
         @catch(NSException *ex)
         {
-            fprintf(stderr,"%s\n",ex.reason.UTF8String);
+            fprintf(stderr,"%s",ex.reason.UTF8String);
             iRet=getExceptionCodeFromExcp(ex);
         }
-        NSLog(@"%@",(iRet==0?@"Test Pass!":@"Test Fail!!"));
+        fprintf(stderr,"%s\n",[NSString stringWithFormat:@">>>>>>>Test result:%@\n--------------------",(iRet==0?@"Pass!!":@"Fail!!")].UTF8String);
     }
 }

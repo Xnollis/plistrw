@@ -7,6 +7,8 @@
 //
 #import "NSDictionary+KeyCaseInsensitive.h"
 
+NSString *get_DescriptionOfObj(id obj);
+
 @implementation NSDictionary(KeyCaseInsensitive)
 -(id)objectForKey_CaseInsensitive:(id)aKey
 {
@@ -31,4 +33,29 @@
     }
     return nil;
 }
+-(NSString*)description_pretty_json
+{
+    return get_DescriptionOfObj(self);
+}
 @end
+
+@implementation NSArray(description_pretty_json)
+-(NSString*)description_pretty_json
+{
+    return get_DescriptionOfObj(self);
+}
+@end
+NSString *get_DescriptionOfObj(id obj)
+{
+    BOOL b=[NSJSONSerialization isValidJSONObject:obj];
+    if(b)
+    {
+        NSData *data=[NSJSONSerialization dataWithJSONObject:obj options:NSJSONWritingPrettyPrinted error:nil];
+        if (data&&data.length>0)
+        {
+            NSString *s1=[[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding];
+            return [s1 stringByReplacingOccurrencesOfString:@"\\/" withString:@"/"];
+        }
+    }
+    return [obj description];
+}

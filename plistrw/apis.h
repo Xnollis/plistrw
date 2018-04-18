@@ -41,3 +41,10 @@ void RaiseExceptionWithCodeAndReason(int exceptCode,NSString *reason);
  @return Exception Code
  */
 int getExceptionCodeFromExcp(NSException *excp);
+/**
+ check the value of given env var is "YES"
+
+ @param szCfgKeyNameInEnv the name of env var
+ @return if the Value is "YES", then return YES.
+ */
+BOOL IsEnvSettingEnabled(const char *szCfgKeyNameInEnv);
