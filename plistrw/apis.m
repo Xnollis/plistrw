@@ -29,7 +29,7 @@ Write Value Example:\n  1.Overwirte/AddNewValue to a Dictionary Item:\n    plist
   Skills:\n    a)Use json string as the <NewValue> param to create/set a complex value at one time:\n\
       plistrw a.plist uplevel_key_n/obj_name \"{\\\"key1\\\":\\\"obj1\\\",\\\"key2\\\":{\\\"subkey1\\\":\\\"subobj1\\\"},\\\"array_obj1\\\":[1234,1456,1678]}\"\n\
     b)Use \"--plist_template\" as the only one param to print a plist file template.\n\
-    c)It's strongly recommended to use single quotation marks (\'), or double quotation marks (\") for each param to get expected correct operation result.\n\n\
+    c)It's strongly recommended to use single quotation marks (\'), or double quotation marks (\") to quote each param in order to get expected correct operation result.\n\n\
   Copyright Xnollis, 2018, ShangHai.\n");
 }
 BOOL isPureInt(NSString* string)
