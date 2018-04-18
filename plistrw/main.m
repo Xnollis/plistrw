@@ -12,12 +12,30 @@
 /// Customize NSLog()
 #ifdef DEBUG
 #define NSLog(FORMAT, ...) fprintf(stderr,"%s\n",[[NSString stringWithFormat:FORMAT, ##__VA_ARGS__] UTF8String]);
+void test_main(void);
 #else
 #define NSLog(...)
 #endif
 /////////////////////////////////////////////
 int main(int argc, const char * argv[])
 {
+    //check environ, see if PLISTRW_QUIET is YES
+    extern char** environ;
+    BOOL bNeedQuiet=NO;
+    char** env = environ;
+    while(*env != NULL)
+    {
+        char *str= *env++,*value;
+        const char *strENVName="PLISTRW_QUIET";
+        size_t n=strlen(strENVName);
+        if(strncmp(str, strENVName,n)==0)
+        {
+            value=str+n+1;
+            bNeedQuiet=([[NSString stringWithUTF8String:value] compare:@"YES" options:NSCaseInsensitiveSearch]==NSOrderedSame);
+            break;
+        }
+    }
+    
     if(argc==2&&strcmp(argv[1],"--plist_template")==0)
     {
         fprintf(stdout,"<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\"><plist version=\"1.0\"><dict/></plist>");
@@ -29,8 +47,13 @@ int main(int argc, const char * argv[])
         print_usage();
         return -1;
     }
+    
     @autoreleasepool
     {
+#ifdef DEBUG
+        test_main();
+        return 0;
+#else
         int iRetCode=-1;
         @try
         {
@@ -38,10 +61,12 @@ int main(int argc, const char * argv[])
         }
         @catch(NSException *ex)
         {
+            if(bNeedQuiet==NO)
             fprintf(stderr,"%s\n",ex.reason.UTF8String);
             iRetCode=getExceptionCodeFromExcp(ex);
         }
         return iRetCode;
+#endif
     }
 }
 /////////////////////////////////////////////
@@ -223,5 +248,212 @@ id getObjectOfWrite(const char* newValueFromCommandLine)
 /////////////////////////////////////////////
 int inner_main(int argc, const char * argv[])
 {
+    NSMutableDictionary *rootDictionary=[[NSMutableDictionary alloc]initWithContentsOfFile:[NSString stringWithUTF8String:argv[1]]];
+    NSMutableArray *rootArray=nil;
+    if (rootDictionary==nil)
+    {
+        rootArray=[[NSMutableArray alloc]initWithContentsOfFile:[NSString stringWithUTF8String:argv[1]]];
+        if (rootArray==nil)
+        {
+            RaiseExceptionWithCodeAndReason(1, [NSString stringWithFormat:@"Bad or not existed plist file:\n%s",argv[1]]);//exit point
+        }
+    }
+    //--------------------------------------------------------
+    Class arrayCLASS=[NSArray class];
+    Class dictCLASS=[NSDictionary class];
+    NSString *strKeyPath=[NSString stringWithUTF8String:argv[2]];//get whole key path
+    NSArray *arrKeyPath=[strKeyPath componentsSeparatedByString:@"/"];
+    
+    NSString *key1;
+    NSUInteger i=0,j=arrKeyPath.count;
+    
+    BOOL bIsWriteMode=(argc>=4);
+    BOOL bIsRemoveMode=(argc==4&&argv[3][0]=='-');
+    
+    NSMutableArray *arrOfVisitedRecord=[NSMutableArray new];
+    
+    for (id objCurrent,objParent=rootDictionary?rootDictionary:rootArray; i<j; ++i)
+    {
+        key1=arrKeyPath[i];
+        key1=[key1 stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        NSLog(@"访问节点：%@",key1);
+        
+        NSUInteger iLPA=0;
+        PListVistPathRecord *record=[PListVistPathRecord new];
+        BOOL bIsArrayAddNewMode=([key1 rangeOfString:@"[]"].location!=NSNotFound);
+        if(bIsArrayAddNewMode)
+        {
+            NSString *key1_tmp=[key1 stringByReplacingOccurrencesOfString:@"[]" withString:@""];
+            id tmpPrOBJ=objParent;
+            NSUInteger iLPAt=0;
+            objCurrent=getChildObjFromParentObj(&tmpPrOBJ,key1_tmp,&iLPAt);
+            if(objCurrent&&[objCurrent isKindOfClass:arrayCLASS]==NO)
+                RaiseExceptionWithCodeAndReason(2, [NSString stringWithFormat:@"Error: Path \"%@\" is not an ARRAY object! Can't add an array item!\n",key1_tmp]);//exit point
+        }
+        objCurrent=getChildObjFromParentObj(&objParent,key1,&iLPA);
+        record.parentNode=objParent;
+        record.currentName=key1;
+        record.currentValue=objCurrent;
+        if(objCurrent==nil)iLPA=NSNotFound;
+        record.iLastIndexInParentArray=iLPA;
+        
+        NSLog(@"得到的节点类型为：%@",(objCurrent==nil?@"(无)":NSStringFromClass([objCurrent class])));
+        
+        [arrOfVisitedRecord addObject:record];
+        if(objCurrent==nil)
+        {//最后一个path是可以为空的。除此之外都是非法情形
+            if (!bIsWriteMode||i<j-1||bIsRemoveMode)
+            {
+                RaiseExceptionWithCodeAndReason(2, [NSString stringWithFormat:@"Error: Path \"%@\" does not exist!\n",key1]);//exit point
+            }
+            break;
+        }
+        objParent=objCurrent;
+    }
+    if (bIsWriteMode)
+    {
+        id newValueToWrite=getObjectOfWrite(argv[3]);
+        PListVistPathRecord *recordLast=(PListVistPathRecord*)arrOfVisitedRecord.lastObject;
+    DO_Write_AGAIN:
+        if([recordLast.parentNode isKindOfClass:arrayCLASS]&&recordLast.iLastIndexInParentArray!=NSNotFound)
+        {
+            BOOL bIsArrayAddNewMode=([recordLast.currentName rangeOfString:@"[]"].location!=NSNotFound);
+            NSMutableArray* aa=(NSMutableArray*)recordLast.parentNode;
+            if(bIsArrayAddNewMode)
+            {
+                [aa addObject:newValueToWrite];
+            }
+            else if(bIsRemoveMode)
+            {
+                if(aa.count>recordLast.iLastIndexInParentArray)
+                    [aa removeObjectAtIndex:recordLast.iLastIndexInParentArray];
+                else
+                {
+                    RaiseExceptionWithCodeAndReason(3, [NSString stringWithFormat:@"Error: Path \"%@\" index %d is out of the Array bound!\n",
+                                                        recordLast.currentName,(int)recordLast.iLastIndexInParentArray]);//exit point
+                }
+            }
+            else
+            {
+                [aa setObject:newValueToWrite atIndexedSubscript:recordLast.iLastIndexInParentArray];
+            }
+        }
+        else if([recordLast.parentNode isKindOfClass:dictCLASS])
+        {
+            NSMutableDictionary* aa=(NSMutableDictionary*)recordLast.parentNode;
+            if(bIsRemoveMode)
+            {
+                [aa removeObjectForKey:recordLast.currentName];
+            }
+            else
+            {
+                [aa setObject:newValueToWrite forKey:recordLast.currentName];
+            }
+        }
+        else
+        {//向上退一级
+            PListVistPathRecord *record_Before_Last;
+            record_Before_Last=[PListVistPathRecord new];
+            
+            if([recordLast.currentName rangeOfString:@"[]"].location!=NSNotFound)
+                newValueToWrite=@[newValueToWrite];
+            else
+                newValueToWrite=@{recordLast.currentName:newValueToWrite};
+            
+            NSUInteger nowParentIndex=[arrOfVisitedRecord indexOfObject:recordLast inRange:NSMakeRange(0, arrOfVisitedRecord.count)];
+            if (nowParentIndex>0)
+            {
+                --nowParentIndex;
+                PListVistPathRecord *rr=arrOfVisitedRecord[nowParentIndex];
+                record_Before_Last.parentNode=rr.parentNode;
+                record_Before_Last.iLastIndexInParentArray=rr.iLastIndexInParentArray;
+                record_Before_Last.currentName=([rr.currentName rangeOfString:@"]"].location==NSNotFound)?rr.currentName:recordLast.currentName;
+            }
+            else
+            {
+                record_Before_Last.parentNode=rootArray?rootArray:rootDictionary;
+                record_Before_Last.iLastIndexInParentArray=NSNotFound;
+                record_Before_Last.currentName=recordLast.currentName;
+            }
+            recordLast=record_Before_Last;
+            goto DO_Write_AGAIN;
+        }
+        BOOL bWriteOK=NO;
+        if(rootDictionary)
+            bWriteOK=[rootDictionary writeToFile:[NSString stringWithUTF8String:argv[1]] atomically:YES];
+        if(rootArray)
+            bWriteOK=[rootArray writeToFile:[NSString stringWithUTF8String:argv[1]] atomically:YES];
+        if (!bWriteOK)
+        {
+            RaiseExceptionWithCodeAndReason(4, [NSString stringWithFormat:@"Error: Write to File \"%s\" Fail!\n",argv[1]]);//exit point
+        }
+    }
+    else
+    {
+        //将得到的对象值，格式化为字符串
+        key1=[NSString stringWithFormat:@"%@",((PListVistPathRecord*)arrOfVisitedRecord.lastObject).currentValue];
+        fprintf(stdout,"%s",key1.UTF8String);
+    }
     return 0;
+}
+typedef const char * argvtype[5];
+void test_main()
+{
+    int iRet;
+    const char * plistfile="/tmp/plistrw_t1.plist";
+    const char * argv_param_0="";
+    argvtype argv_all[]={
+        {argv_param_0,plistfile,"a","a obj"},
+        {argv_param_0,plistfile,"a/b","b obj under a"},
+        {argv_param_0,plistfile,"a/b","a changed b obj under a"},
+        {argv_param_0,plistfile,"a/b/c/d","a ABCD obj"}, //should fail
+        {argv_param_0,plistfile,"a/b/dic1","{\"inner1\":\"11111\",\"inner_array\":[23,45,67,\"fef\"],\"inner2\":\"aaaa222aa\"}"},
+        {argv_param_0,plistfile,"a/b/c","a CCCC obj"},
+        {argv_param_0,plistfile,"a/b/booltype","Bool_True"},
+        {argv_param_0,plistfile,"a/b/hex-value","<1a2b3c4dfeaaff>"},
+        {argv_param_0,plistfile,"a/d","[23,45,67.789]"},
+        {argv_param_0,plistfile,"a/d[2]","[\"123\",145.252,167]"},
+        {argv_param_0,plistfile,"a/d[2][0]","<9988991a2b3c4dfeaaff>"},
+        {argv_param_0,plistfile,"a/d[2][3]/g","g2222"},//should fail
+        {argv_param_0,plistfile,"a/d[2][2]/g","g2222"},
+        {argv_param_0,plistfile,"a/d[2][2][]","arr22"},//should fail
+        {argv_param_0,plistfile,"a/d[2][2]","[11,33.76,55]"},//change the Object Type from Dict to Array
+        {argv_param_0,plistfile,"a/d[2][2][]","arr22"},
+        {argv_param_0,plistfile,"a/d[2][2][]","-"},//should success. "[]"(add array item operation) priority is higher than "-"(remove operation)
+        {argv_param_0,plistfile,"a/d[2][]","arr11"},
+        {argv_param_0,plistfile,"a/d[2][]","[\"sub level item\",55.5,66.6,77.7,100]"},
+        {argv_param_0,plistfile,"a/d[2][3]/g","-"},//should fail
+        {argv_param_0,plistfile,"a/d[2][2]/g","-"},//should fail
+        {argv_param_0,plistfile,"a/d[2]/g","-"},//should fail
+        {argv_param_0,plistfile,"a/d[0]","-"},
+        {argv_param_0,plistfile,"a/d[0]","-"},
+        {argv_param_0,plistfile,"a/d[0]","-"},
+        {argv_param_0,plistfile,"a/b/dic1/inner_array[0]","-"},
+        {argv_param_0,plistfile,"a/b/dic1/inner_array[0]","-"},
+        {argv_param_0,plistfile,"a/b/dic1/inner_array[0]","-"},
+        {argv_param_0,plistfile,"a/b/dic1/inner_array[0]","-"},
+        {argv_param_0,plistfile,"a/b/dic1/inner_array[0]","-"},//should fail
+        {argv_param_0,plistfile,"a/b/dic1/inner_array","-"},
+        {argv_param_0,plistfile,"a/b/dic1/inner1","-"},
+        {argv_param_0,plistfile,"a/b/dic1/inner2","-"},
+    };
+    size_t i,k,n,j=sizeof(argv_all)/sizeof(argvtype);
+    for (i=0; i<j; ++i)
+    {
+        for (k=0,n=0; n<5; ++n)
+        {
+            if(argv_all[i][n]!=NULL)
+                ++k;
+        }
+        @try
+        {
+            iRet=inner_main((int)k, argv_all[i]);
+        }
+        @catch(NSException *ex)
+        {
+            fprintf(stderr,"%s\n",ex.reason.UTF8String);
+            iRet=getExceptionCodeFromExcp(ex);
+        }
+        NSLog(@"%@",(iRet==0?@"Test Pass!":@"Test Fail!!"));
+    }
 }

@@ -20,13 +20,20 @@ BOOL isPureInt(NSString* string);
  */
 BOOL isPureFloat(NSString* string);
 /**
- create a NSException object to throw
+ create a NSException object to raise later
 
  @param exceptCode the customized exception code to carry with
  @param reason the Reason String
  @return a NSException object
  */
 NSException* exceptionWithCodeAndReason(int exceptCode,NSString *reason);
+/**
+ create and Raise a NSException object
+ 
+ @param exceptCode the customized exception code to carry with
+ @param reason the Reason String
+ */
+void RaiseExceptionWithCodeAndReason(int exceptCode,NSString *reason);
 /**
  get Exception code from the NSException object which created by exceptionWithCodeAndReason()
 

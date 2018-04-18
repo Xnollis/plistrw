@@ -44,6 +44,11 @@ NSException* exceptionWithCodeAndReason(int exceptCode,NSString *reason)
 {
     return [NSException exceptionWithName:@"plistrw_ex" reason:(reason==nil?@"":reason) userInfo:@{@"code":@(exceptCode)}];
 }
+void RaiseExceptionWithCodeAndReason(int exceptCode,NSString *reason)
+{
+    NSException *e=exceptionWithCodeAndReason(exceptCode, reason);
+    if(e) [e raise];
+}
 int getExceptionCodeFromExcp(NSException *excp)
 {
     NSDictionary *uInfo=excp.userInfo;
