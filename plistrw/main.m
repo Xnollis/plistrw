@@ -36,7 +36,7 @@ int main(int argc, const char * argv[])
 
     @autoreleasepool
     {
-        if (bIsRunTestMode)
+        //if (bIsRunTestMode)
         {
             test_main();
             return 0;
@@ -432,7 +432,43 @@ void test_main()
         {argv_param_0,plistfile,"a/b/dic1/inner2","-"},
         {argv_param_0,plistfile,"a/b/dic1"},
     };
+    int test_result_array[]={
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0};
     size_t i,k,n,j=sizeof(argv_all)/sizeof(argvtype);
+    NSMutableArray *arr=[NSMutableArray new];
     for (i=0; i<j; ++i)
     {
         for (k=0,n=0; n<5; ++n)
@@ -452,6 +488,11 @@ void test_main()
             fprintf(stderr,"%s",ex.reason.UTF8String);
             iRet=getExceptionCodeFromExcp(ex);
         }
-        fprintf(stderr,"%s\n",[NSString stringWithFormat:@">>>>>>>Test result:%@\n--------------------",(iRet==0?@"Pass!!":@"Fail!!")].UTF8String);
+        [arr addObject:@(iRet)];
+        fprintf(stderr,"%s\n",[NSString stringWithFormat:@">>>>>>>Test result:%@%@\n--------------------",
+                               (iRet==test_result_array[i]?@"Pass!!":@"Fail!!"),
+                               (iRet==0?@"":@"(should got an error)")
+                               ].UTF8String);
     }
+    //NSLog(@"%@",arr);
 }
