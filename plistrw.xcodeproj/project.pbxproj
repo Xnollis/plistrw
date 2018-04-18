@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		A27B9B2C204E708D0010FECB /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = A27B9B2B204E708D0010FECB /* main.m */; };
+		A2B7063E2086E06F0015DE5F /* NSDictionary+KeyCaseInsensitive.m in Sources */ = {isa = PBXBuildFile; fileRef = A2B7063D2086E06F0015DE5F /* NSDictionary+KeyCaseInsensitive.m */; };
+		A2B706412086E0ED0015DE5F /* PListVistPathRecord.m in Sources */ = {isa = PBXBuildFile; fileRef = A2B706402086E0ED0015DE5F /* PListVistPathRecord.m */; };
+		A2B706442086E37E0015DE5F /* apis.m in Sources */ = {isa = PBXBuildFile; fileRef = A2B706422086E37E0015DE5F /* apis.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,6 +28,12 @@
 /* Begin PBXFileReference section */
 		A27B9B28204E708D0010FECB /* plistrw */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = plistrw; sourceTree = BUILT_PRODUCTS_DIR; };
 		A27B9B2B204E708D0010FECB /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		A2B7063C2086E06F0015DE5F /* NSDictionary+KeyCaseInsensitive.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSDictionary+KeyCaseInsensitive.h"; sourceTree = "<group>"; };
+		A2B7063D2086E06F0015DE5F /* NSDictionary+KeyCaseInsensitive.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSDictionary+KeyCaseInsensitive.m"; sourceTree = "<group>"; };
+		A2B7063F2086E0ED0015DE5F /* PListVistPathRecord.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PListVistPathRecord.h; sourceTree = "<group>"; };
+		A2B706402086E0ED0015DE5F /* PListVistPathRecord.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PListVistPathRecord.m; sourceTree = "<group>"; };
+		A2B706422086E37E0015DE5F /* apis.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = apis.m; sourceTree = "<group>"; };
+		A2B706432086E37E0015DE5F /* apis.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = apis.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,6 +66,12 @@
 		A27B9B2A204E708D0010FECB /* plistrw */ = {
 			isa = PBXGroup;
 			children = (
+				A2B706432086E37E0015DE5F /* apis.h */,
+				A2B706422086E37E0015DE5F /* apis.m */,
+				A2B7063F2086E0ED0015DE5F /* PListVistPathRecord.h */,
+				A2B706402086E0ED0015DE5F /* PListVistPathRecord.m */,
+				A2B7063C2086E06F0015DE5F /* NSDictionary+KeyCaseInsensitive.h */,
+				A2B7063D2086E06F0015DE5F /* NSDictionary+KeyCaseInsensitive.m */,
 				A27B9B2B204E708D0010FECB /* main.m */,
 			);
 			path = plistrw;
@@ -127,7 +142,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "ditto $BUILT_PRODUCTS_DIR/$TARGET_NAME $SRCROOT/bin/d\"$TARGETNAME\"";
+			shellScript = "ditto $BUILT_PRODUCTS_DIR/$TARGET_NAME $SRCROOT/bin/\"$TARGETNAME\"";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -136,6 +151,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A2B7063E2086E06F0015DE5F /* NSDictionary+KeyCaseInsensitive.m in Sources */,
+				A2B706412086E0ED0015DE5F /* PListVistPathRecord.m in Sources */,
+				A2B706442086E37E0015DE5F /* apis.m in Sources */,
 				A27B9B2C204E708D0010FECB /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
