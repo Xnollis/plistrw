@@ -190,7 +190,8 @@ id getObjectOfWrite(const char* newValueFromCommandLine)
     else if(str.length>=2&&str.UTF8String[0]=='<'&&str.UTF8String[str.length-1]=='>')
     {
         NSString *str1=[[str substringWithRange:NSMakeRange(1, str.length-2)] lowercaseString];
-        if(str1.length%2!=0)return nil;//16进制值的字符串,其长度必须是2的整数倍
+        if(str1.length%2!=0)//16进制值的字符串,其长度必须是2的整数倍
+            RaiseExceptionWithCodeAndReason(11, [NSString stringWithFormat:@"Error: Invalid Hex Bytes to write \"%s\"! Must be 2n characters.\n",newValueFromCommandLine]);//exit point
         char buf[3],*dataBuf,*dataBufPtr,*s0,*str2=(char*)str1.UTF8String;
         unsigned int v;
         s0=str2;
