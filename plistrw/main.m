@@ -36,7 +36,7 @@ int main(int argc, const char * argv[])
 
     @autoreleasepool
     {
-        //if (bIsRunTestMode)
+        if (bIsRunTestMode)
         {
             test_main();
             return 0;
