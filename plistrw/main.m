@@ -492,7 +492,7 @@ void test_main()
         [arr addObject:@(iRet)];
         fprintf(stderr,"%s\n",[NSString stringWithFormat:@">>>>>>>Test result:%@%@\n--------------------",
                                (iRet==test_result_array[i]?@"Pass!!":@"Fail!!"),
-                               (iRet==0?@"":@"(should got an error)")
+                               (test_result_array[i]==0?@"":@"(should get an error here)")
                                ].UTF8String);
     }
     //NSLog(@"%@",arr);
